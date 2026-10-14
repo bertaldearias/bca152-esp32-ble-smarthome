@@ -1,3 +1,9 @@
+# PlatformIO / VS Code
+.pio/
+.vscode/
+build/
+sdkconfig.old
+
 # Prerequisites
 *.d
 
