@@ -1,66 +1,55 @@
-
-#include "app_sensor.h"
-
 #include <stdio.h>
-#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_log.h"
+#include "app_sensor.h"
 
+#define TAG "sensor"
 
-bool light_level_low;
-static light_changed_f light_changed_cb;
-
-static tsl2561_t light_sensor;
-
-#define TAG "app.sensor"
-
-static void read_light(void *arg)
-{
-    uint32_t lux;
-    while (1)
-    {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        if (tsl2561_read_lux(&light_sensor, &lux) == ESP_OK)
-        {
-            ESP_LOGI(TAG, "Lux: %u\n", lux);
-            if (lux < LIGHT_THRESHOLD && !light_level_low)
-            {
-                light_level_low = true;
-                if (light_changed_cb != NULL)
-                {
-                    light_changed_cb(light_level_low);
-                }
-            }
-            else if (lux > LIGHT_THRESHOLD && light_level_low)
-            {
-                light_level_low = false;
-                if (light_changed_cb != NULL)
-                {
-                    light_changed_cb(light_level_low);
-                }
-            }
-        }
-    }
-}
-
-void init_hw(light_changed_f f)
-{
-    light_changed_cb = f;
-    light_level_low = false;
-
-    i2cdev_init();
-
-    memset(&light_sensor, 0, sizeof(tsl2561_t));
-    light_sensor.i2c_dev.timeout_ticks = 0xffff / portTICK_PERIOD_MS;
-
-    tsl2561_init_desc(&light_sensor, LIGHT_ADDR, 0, LIGHT_SDA, LIGHT_SCL);
-    tsl2561_init(&light_sensor);
-
-    xTaskCreate(read_light, "light", 3 * configMINIMAL_STACK_SIZE, NULL, 5, NULL);
-}
+static adc_oneshot_unit_handle_t adc_handle;
+static light_changed_f changed_cb;
+static bool light_low = false;
 
 bool is_light_low(void)
 {
-    return light_level_low;
+    return light_low;
+}
+
+static void sensor_task(void *arg)
+{
+    bool first = true;
+    while (1) {
+        int raw = 0;
+        adc_oneshot_read(adc_handle, LIGHT_ADC_CHANNEL, &raw);
+        ESP_LOGI(TAG, "light level: %d", raw);
+
+        bool low = raw < LIGHT_THRESHOLD;
+        if (first || low != light_low) {
+            light_low = low;
+            first = false;
+            if (changed_cb) {
+                changed_cb(light_low);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+void init_hw(light_changed_f cb)
+{
+    changed_cb = cb;
+
+    adc_oneshot_unit_init_cfg_t unit_cfg = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&unit_cfg, &adc_handle));
+
+    adc_oneshot_chan_cfg_t chan_cfg = {
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_12,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, LIGHT_ADC_CHANNEL, &chan_cfg));
+
+    xTaskCreate(sensor_task, "sensor_task", 3072, NULL, 5, NULL);
 }

@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 
-#define ATTN_LED_PIN 19
+#define ATTN_LED_PIN 4
 
 void appled_init(void);
 void appled_set(bool);
