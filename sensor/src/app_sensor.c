@@ -18,6 +18,7 @@ bool is_light_low(void)
 
 static void sensor_task(void *arg)
 {
+    vTaskDelay(pdMS_TO_TICKS(5000));   /* wait for BLE mesh to start */
     bool first = true;
     while (1) {
         int raw = 0;
