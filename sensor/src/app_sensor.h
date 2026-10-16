@@ -3,7 +3,10 @@
 
 #include <stdbool.h>
 
-#define LIGHT_THRESHOLD 1000   /* ADC counts (0-4095); tune on your hardware */
+/* Calibrate: read "light level" in the serial monitor in bright light and in
+   the dark, then set this to a value between the two (ADC counts, 0-4095). */
+#define LIGHT_THRESHOLD 1000
+
 #define LIGHT_ADC_CHANNEL ADC_CHANNEL_0   /* GPIO1 on ESP32-S3 */
 
 typedef void (*light_changed_f)(bool);
