@@ -39,4 +39,8 @@ typedef struct
 
 void appble_set_attn_cbs(appble_attn_cbs_t);
 
+
+void appble_set_attn_cbs(appble_attn_cbs_t);
+
 #endif
+
