@@ -3,9 +3,7 @@
 
 #include <stdbool.h>
 
-#ifndef ATTN_LED_PIN
-#define ATTN_LED_PIN 19   /* book default; override with -DATTN_LED_PIN=<pin> */
-#endif
+#define ATTN_LED_PIN 19
 
 void appled_init(void);
 void appled_set(bool);
