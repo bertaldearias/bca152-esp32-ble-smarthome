@@ -3,8 +3,11 @@
 
 #include <stdbool.h>
 
-#define LIGHT_THRESHOLD 1000   /* ADC counts (0-4095); tune on your hardware */
-#define LIGHT_ADC_CHANNEL ADC_CHANNEL_0   /* GPIO1 on ESP32-S3 */
+#define LIGHT_DO_PIN 1   /* module D0 pin -> GPIO1 */
+
+/* Level that D0 shows when it is DARK. Most LM393 modules give 1 (HIGH) in
+   the dark. If the module's behaviour is reversed, change this to 0. */
+#define DARK_LEVEL 1
 
 typedef void (*light_changed_f)(bool);
 

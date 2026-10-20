@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_adc/adc_oneshot.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 #include "app_sensor.h"
 
 #define TAG "sensor"
 
-static adc_oneshot_unit_handle_t adc_handle;
 static light_changed_f changed_cb;
 static bool light_low = false;
 
@@ -18,13 +17,13 @@ bool is_light_low(void)
 
 static void sensor_task(void *arg)
 {
+    vTaskDelay(pdMS_TO_TICKS(5000));   /* wait for BLE mesh to start */
     bool first = true;
     while (1) {
-        int raw = 0;
-        adc_oneshot_read(adc_handle, LIGHT_ADC_CHANNEL, &raw);
-        ESP_LOGI(TAG, "light level: %d", raw);
+        int level = gpio_get_level(LIGHT_DO_PIN);
+        bool low = (level == DARK_LEVEL);
+        ESP_LOGI(TAG, "D0 level: %d (%s)", level, low ? "dark" : "light");
 
-        bool low = raw < LIGHT_THRESHOLD;
         if (first || low != light_low) {
             light_low = low;
             first = false;
@@ -40,16 +39,14 @@ void init_hw(light_changed_f cb)
 {
     changed_cb = cb;
 
-    adc_oneshot_unit_init_cfg_t unit_cfg = {
-        .unit_id = ADC_UNIT_1,
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << LIGHT_DO_PIN),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
     };
-    ESP_ERROR_CHECK(adc_oneshot_new_unit(&unit_cfg, &adc_handle));
-
-    adc_oneshot_chan_cfg_t chan_cfg = {
-        .atten = ADC_ATTEN_DB_12,
-        .bitwidth = ADC_BITWIDTH_12,
-    };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, LIGHT_ADC_CHANNEL, &chan_cfg));
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
 
     xTaskCreate(sensor_task, "sensor_task", 3072, NULL, 5, NULL);
 }
