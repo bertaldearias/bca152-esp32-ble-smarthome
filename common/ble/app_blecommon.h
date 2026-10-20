@@ -29,4 +29,8 @@ void appble_health_evt_handler(esp_ble_mesh_health_server_cb_event_t event,
 
 void appble_set_attn_cbs(appble_attn_cbs_t cbs);
 
+
+void appble_set_attn_cbs(appble_attn_cbs_t);
+
 #endif
+
