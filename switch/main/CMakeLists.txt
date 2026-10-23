@@ -1,9 +1,8 @@
-
 idf_component_register(
     SRCS
         "main.c"
         "app_ble.c"
         "app_sw.c"
     INCLUDE_DIRS "."
-    REQUIRES ble led
+    REQUIRES ble led nvs_flash
 )
